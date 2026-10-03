@@ -1,0 +1,1065 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Segnapunti Yahtzee</title>
+<style>
+:root{
+  --bg:#f3eee4; --surface:#fffdf8; --surface-2:#f7f1e6; --ink:#2a2620; --muted:#786f62; --line:#e3d9c8;
+  --accent:#1e6b51; --accent-soft:#dcefe6; --accent-ink:#fff;
+  --gold:#a87a06; --gold-soft:#fbefd0; --danger:#b23b25; --danger-soft:#f8e0da;
+  --shadow:0 1px 2px rgba(40,30,10,.06),0 6px 20px rgba(40,30,10,.07);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#14130f; --surface:#1e1c17; --surface-2:#26231d; --ink:#efe9dd; --muted:#a69e90; --line:#39352d;
+    --accent:#4cb68b; --accent-soft:#1d3a2f; --accent-ink:#0d1a14;
+    --gold:#e2b84a; --gold-soft:#3a3018; --danger:#ef7a62; --danger-soft:#43221b;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.3);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#14130f; --surface:#1e1c17; --surface-2:#26231d; --ink:#efe9dd; --muted:#a69e90; --line:#39352d;
+  --accent:#4cb68b; --accent-soft:#1d3a2f; --accent-ink:#0d1a14;
+  --gold:#e2b84a; --gold-soft:#3a3018; --danger:#ef7a62; --danger-soft:#43221b;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.3);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer}
+input,select{font:inherit;color:inherit}
+.wrap{max-width:1100px;margin:0 auto;padding:0 16px 48px}
+
+header{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.head{max-width:1100px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;letter-spacing:-.01em;margin-right:auto}
+nav{display:flex;gap:4px;overflow-x:auto;max-width:100%}
+nav button{border:0;background:none;padding:8px 12px;border-radius:999px;color:var(--muted);font-weight:600;white-space:nowrap}
+nav button[aria-current="true"]{background:var(--ink);color:var(--bg)}
+nav button:hover:not([aria-current="true"]){background:var(--surface-2);color:var(--ink)}
+
+h2{font-size:20px;margin:0 0 4px;letter-spacing:-.01em}
+h3{font-size:16px;margin:0 0 8px}
+.sub{color:var(--muted);margin:0 0 16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:var(--shadow);margin-top:20px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{border:1px solid var(--line);background:var(--surface);padding:9px 16px;border-radius:10px;font-weight:600;display:inline-flex;align-items:center;gap:6px;min-height:40px}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.danger{color:var(--danger)}
+.btn.danger.solid{background:var(--danger);border-color:var(--danger);color:#fff}
+.btn:disabled{opacity:.45;cursor:not-allowed;filter:none}
+.btn.sm{padding:5px 10px;min-height:32px;font-size:13px}
+.empty-state{text-align:center;padding:36px 16px;color:var(--muted)}
+.empty-state .big{font-size:40px;margin-bottom:6px}
+
+/* scelta giocatori */
+.pick{display:flex;flex-wrap:wrap;gap:10px;margin:8px 0 18px}
+.chip{position:relative;display:flex;align-items:center;gap:8px;border:2px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 16px 6px 6px;font-weight:600;min-height:44px}
+.chip .av{width:32px;height:32px}
+.chip.on{border-color:var(--pc);background:color-mix(in srgb,var(--pc) 12%,var(--surface))}
+.chip .ord{position:absolute;top:-8px;right:-6px;background:var(--pc);color:#fff;font-size:12px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;border:2px solid var(--surface)}
+.av{display:inline-grid;place-items:center;border-radius:50%;background:color-mix(in srgb,var(--pc) 22%,var(--surface));border:2px solid var(--pc);font-size:18px;width:36px;height:36px;flex:none;line-height:1}
+
+/* barra partita */
+.gamebar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:20px 0 12px}
+.turn{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:5px 16px 5px 5px;box-shadow:var(--shadow)}
+.turn .lbl{font-size:12px;color:var(--muted);line-height:1.1}
+.turn b{display:block;font-size:15px}
+.gamebar .spacer{flex:1}
+
+/* cartella */
+.sheet-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
+table.sheet{border-collapse:separate;border-spacing:0;width:100%;font-variant-numeric:tabular-nums}
+.sheet th,.sheet td{border-bottom:1px solid var(--line);padding:0;text-align:center}
+.sheet thead th{padding:12px 6px 10px;vertical-align:bottom;min-width:92px;border-bottom:2px solid var(--line)}
+.sheet thead th .av{width:38px;height:38px;font-size:20px;margin-bottom:4px}
+.sheet thead th .nm{display:block;font-weight:700;max-width:120px;margin:0 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sheet thead th.now{background:color-mix(in srgb,var(--pc) 10%,var(--surface))}
+.sheet thead th .tag{display:inline-block;font-size:11px;font-weight:700;color:#fff;background:var(--pc);border-radius:999px;padding:1px 8px;margin-top:3px}
+.sheet .lab{position:sticky;left:0;z-index:1;background:var(--surface);text-align:left;padding:8px 12px;min-width:170px;border-right:1px solid var(--line)}
+.sheet .lab .t{font-weight:600;display:flex;align-items:center;gap:8px}
+.sheet .lab .h{font-size:12px;color:var(--muted);display:block;line-height:1.25}
+.sheet tr.sec th{background:var(--surface-2);text-align:left;padding:6px 12px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);position:sticky;left:0}
+.sheet tr.tot td,.sheet tr.tot .lab{background:var(--surface-2);font-weight:700}
+.sheet tr.grand td,.sheet tr.grand .lab{background:var(--ink);color:var(--bg);font-size:18px;font-weight:800;border-bottom:0}
+.sheet tr.grand .lab .h{color:inherit;opacity:.7}
+.sheet td.now{background:color-mix(in srgb,var(--pc) 7%,transparent)}
+.cell{width:100%;min-height:46px;border:0;background:none;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:4px;padding:4px}
+.cell:hover{background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.cell.empty{color:var(--line);font-weight:400}
+.cell.empty::after{content:"+";font-size:20px;color:var(--muted);opacity:.35}
+.cell.empty:hover::after{opacity:1;color:var(--accent)}
+.cell.zero{color:var(--muted);font-weight:500;text-decoration:line-through;text-decoration-color:var(--danger);text-decoration-thickness:2px}
+.cell.flash{animation:flash .9s ease}
+@keyframes flash{0%{background:var(--gold-soft)}100%{background:transparent}}
+.mini{font-size:12px;font-weight:600;color:var(--muted);display:block}
+.ok{color:var(--accent)}
+.crown{font-size:14px}
+.bonuscell{font-size:16px}
+.tip{color:var(--muted);font-size:13px;margin:10px 2px 0}
+
+/* dialog */
+dialog{border:0;padding:0;border-radius:18px;background:var(--surface);color:var(--ink);box-shadow:0 20px 60px rgba(0,0,0,.35);width:min(520px,calc(100vw - 24px));max-height:calc(100vh - 24px)}
+dialog::backdrop{background:rgba(20,16,10,.45);backdrop-filter:blur(2px)}
+.dlg-h{padding:18px 20px 6px;display:flex;gap:12px;align-items:center}
+.dlg-h .ttl{font-weight:800;font-size:18px;line-height:1.2}
+.dlg-h .hh{color:var(--muted);font-size:13px}
+.dlg-b{padding:10px 20px 6px}
+.dlg-f{padding:12px 20px 18px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.dlg-f .left{margin-right:auto}
+.modes{display:grid;grid-template-columns:repeat(3,1fr);background:var(--surface-2);border-radius:12px;padding:4px;gap:4px;margin-bottom:14px}
+.modes button{border:0;background:none;padding:8px 4px;border-radius:9px;font-weight:600;color:var(--muted);font-size:13px}
+.modes button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+.opts{display:grid;grid-template-columns:repeat(auto-fill,minmax(54px,1fr));gap:8px}
+.opts.big{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}
+.opt{border:1px solid var(--line);background:var(--surface);border-radius:10px;min-height:48px;font-size:18px;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1}
+.opt small{font-size:11px;font-weight:600;color:var(--muted)}
+.opt:hover{border-color:var(--accent);background:var(--accent-soft)}
+.opt.zero{color:var(--danger)}
+.opt.zero:hover{border-color:var(--danger);background:var(--danger-soft)}
+.opt.sel{outline:3px solid var(--accent);outline-offset:1px}
+.extra{display:flex;gap:8px;align-items:center;background:var(--gold-soft);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-weight:600;font-size:14px;cursor:pointer}
+.extra input{width:18px;height:18px;accent-color:var(--gold)}
+.slots{display:flex;gap:8px;justify-content:center;margin:4px 0 14px}
+.slot{width:56px;height:56px;border-radius:12px;border:2px dashed var(--line);background:none;display:grid;place-items:center;padding:0}
+.slot.full{border:0}
+.pad{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.pad button{border:0;background:none;padding:2px;border-radius:10px}
+.pad button:hover{background:var(--surface-2)}
+.die rect{fill:var(--surface);stroke:var(--ink);stroke-width:6}
+.die circle{fill:var(--ink)}
+.slot .die rect{fill:var(--gold-soft)}
+.preview{margin-top:16px;text-align:center;background:var(--surface-2);border-radius:12px;padding:12px}
+.preview .v{font-size:32px;font-weight:800;line-height:1}
+.warn{background:var(--danger-soft);color:var(--danger);border-radius:10px;padding:8px 12px;font-size:13px;font-weight:600;margin-top:10px}
+.note{background:var(--gold-soft);border-radius:10px;padding:8px 12px;font-size:13px;font-weight:600;margin-top:10px}
+.manual{display:flex;gap:10px;align-items:center}
+.manual input{flex:1;font-size:28px;font-weight:800;padding:8px 14px;border:2px solid var(--line);border-radius:12px;background:var(--surface);width:100%;min-width:0}
+.manual input:focus{outline:none;border-color:var(--accent)}
+.stepper{display:flex;align-items:center;justify-content:center;gap:18px;margin:10px 0}
+.stepper .n{font-size:36px;font-weight:800;min-width:60px;text-align:center}
+.stepper .btn{width:52px;height:52px;justify-content:center;font-size:24px;border-radius:50%}
+
+/* giocatori */
+.form{display:grid;gap:14px}
+.field label{display:block;font-weight:600;font-size:13px;margin-bottom:5px}
+.field input[type=text]{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.field input[type=text]:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:transparent}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:560px){.two{grid-template-columns:1fr}}
+.emojis,.colors{display:flex;flex-wrap:wrap;gap:6px}
+.emojis button{width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-size:20px;padding:0}
+.emojis button[aria-pressed="true"]{outline:3px solid var(--accent);outline-offset:1px}
+.colors button{width:32px;height:32px;border-radius:50%;border:3px solid var(--surface);background:var(--c);box-shadow:0 0 0 1px var(--line);padding:0}
+.colors button[aria-pressed="true"]{box-shadow:0 0 0 3px var(--ink)}
+.plist{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin-top:4px}
+.pcard{display:flex;gap:12px;align-items:center;border:1px solid var(--line);border-left:5px solid var(--pc);border-radius:12px;padding:12px;background:var(--surface)}
+.pcard .info{flex:1;min-width:0}
+.pcard .info b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pcard .info span{font-size:12px;color:var(--muted)}
+.pcard .acts{display:flex;gap:4px}
+.icon-btn{border:0;background:none;width:34px;height:34px;border-radius:8px;font-size:16px}
+.icon-btn:hover{background:var(--surface-2)}
+
+/* storico / record */
+.hist{display:grid;gap:12px}
+.hcard{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--surface)}
+.hcard .top{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.hcard .date{font-weight:700}
+.badge{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--surface-2);color:var(--muted)}
+.badge.warn2{background:var(--danger-soft);color:var(--danger)}
+.rank{display:flex;flex-wrap:wrap;gap:8px}
+.rank .r{display:flex;align-items:center;gap:6px;background:var(--surface-2);border-radius:999px;padding:3px 12px 3px 3px;font-size:14px}
+.rank .r .av{width:26px;height:26px;font-size:14px}
+.rank .r b{font-variant-numeric:tabular-nums}
+.rank .r.win{background:var(--gold-soft)}
+.records{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:640px){.records{grid-template-columns:1fr}}
+.rec{border-radius:16px;padding:18px;border:1px solid var(--line);background:var(--surface);box-shadow:var(--shadow)}
+.rec.hi{background:linear-gradient(135deg,var(--gold-soft),var(--surface) 70%)}
+.rec .k{font-size:12px;text-transform:uppercase;letter-spacing:.07em;font-weight:700;color:var(--muted)}
+.rec .v{font-size:44px;font-weight:800;line-height:1.05;margin:6px 0 8px;font-variant-numeric:tabular-nums}
+.rec .who{display:flex;align-items:center;gap:8px;font-weight:600}
+.rec .who span{color:var(--muted);font-weight:400;font-size:13px}
+.tbl-wrap{overflow-x:auto}
+table.stats{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:14px}
+.stats th,.stats td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+.stats th{font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.stats th:first-child,.stats td:first-child{text-align:left}
+.stats td:first-child{display:flex;align-items:center;gap:8px;font-weight:600}
+.stats td:first-child .av{width:28px;height:28px;font-size:15px}
+.final-list{display:grid;gap:8px}
+.final-list .f{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;background:var(--surface-2)}
+.final-list .f.win{background:var(--gold-soft)}
+.final-list .f .pos{font-size:22px;width:30px;text-align:center}
+.final-list .f .n{flex:1;font-weight:700}
+.final-list .f .s{font-size:24px;font-weight:800;font-variant-numeric:tabular-nums}
+.newrec{display:inline-block;margin-left:6px;font-size:11px;background:var(--gold);color:#fff;border-radius:999px;padding:1px 8px;vertical-align:middle}
+.rules{columns:2 320px;column-gap:28px}
+.rules section{break-inside:avoid;margin-bottom:18px}
+.rules table{width:100%;border-collapse:collapse;font-size:14px}
+.rules td{padding:6px 4px;border-bottom:1px solid var(--line);vertical-align:top}
+.rules td:last-child{text-align:right;font-weight:700;white-space:nowrap}
+.rules p,.rules li{font-size:14px}
+
+.hbtns{display:flex;gap:6px}
+.banner{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);border-radius:16px;padding:14px 18px;margin-top:20px}
+.banner .txt{flex:1;min-width:200px}
+.banner .txt b{display:block}
+.banner .txt span{font-size:13px;color:var(--muted)}
+.modepick{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:4px 0 18px}
+@media (max-width:560px){.modepick{grid-template-columns:1fr}}
+.modepick button{text-align:left;border:2px solid var(--line);background:var(--surface);border-radius:14px;padding:12px 14px}
+.modepick button b{display:block;font-size:15px}
+.modepick button span{font-size:13px;color:var(--muted)}
+.modepick button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.tray{margin-top:0;display:flex;flex-direction:column;align-items:center;gap:14px;background:radial-gradient(ellipse at top,color-mix(in srgb,var(--accent) 22%,var(--surface)),color-mix(in srgb,var(--accent) 8%,var(--surface)))}
+.vdice{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.vd{border:0;background:none;padding:4px;border-radius:16px;position:relative;transition:transform .15s}
+.vd .q{display:grid;place-items:center;width:64px;height:64px;border:3px dashed var(--line);border-radius:14px;font-size:24px;color:var(--muted)}
+.vd.held{transform:translateY(-6px)}
+.vd.held .die rect{fill:var(--gold-soft);stroke:var(--gold)}
+.vd.held::after{content:"tenuto";position:absolute;left:50%;bottom:-14px;transform:translateX(-50%);font-size:11px;font-weight:700;color:var(--gold)}
+.vd.spin svg{animation:spin .45s ease-out}
+@keyframes spin{0%{transform:rotate(-200deg) scale(.6);opacity:.3}100%{transform:none;opacity:1}}
+.btn.big{font-size:17px;padding:12px 26px;min-height:50px;border-radius:14px}
+.trayinfo{font-size:13px;color:var(--muted);text-align:center}
+.pv{font-size:16px;font-weight:700;color:var(--accent);opacity:.85;border:1.5px dashed var(--accent);border-radius:8px;padding:0 8px}
+.cell.pvcell::after{content:none}
+.cell.locked{cursor:default}
+.cell.locked:hover{background:none}
+.bars{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;align-items:end;margin-top:8px}
+.bar{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;font-variant-numeric:tabular-nums}
+.bar .track{width:100%;max-width:46px;height:90px;background:var(--surface-2);border-radius:8px;position:relative;overflow:hidden}
+.bar .fill{position:absolute;left:0;right:0;bottom:0;background:var(--accent);border-radius:8px 8px 0 0}
+.bar .exp{position:absolute;left:-2px;right:-2px;border-top:2px dashed var(--gold)}
+details.sum{margin-top:14px}
+details.sum summary{cursor:pointer;font-weight:600;color:var(--muted)}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(30px);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-weight:600;opacity:0;transition:.25s;pointer-events:none;z-index:50;max-width:calc(100vw - 32px);text-align:center}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<header>
+  <div class="head">
+    <div class="brand"><span id="logo"></span> Segnapunti Yahtzee</div>
+    <nav id="nav">
+      <button data-act="tab" data-tab="game">Partita</button>
+      <button data-act="tab" data-tab="players">Giocatori</button>
+      <button data-act="tab" data-tab="history">Storico</button>
+      <button data-act="tab" data-tab="records">Record</button>
+      <button data-act="tab" data-tab="rules">Regole</button>
+    </nav>
+    <div class="hbtns">
+      <button class="btn sm" data-act="import" title="Carica un file di backup">⬆ Carica backup</button>
+      <button class="btn sm" data-act="export" title="Scarica un file di backup">⬇ Scarica backup</button>
+    </div>
+  </div>
+</header>
+<main class="wrap" id="view"></main>
+<input type="file" id="impfile" accept=".json,application/json" hidden>
+<dialog id="dlg"></dialog>
+<div id="toast" role="status"></div>
+
+<script>
+/* ===================== Dati e regole ===================== */
+const LS_KEY = 'yahtzee-segnapunti-v1';
+const UP = [
+  {k:'ones',  label:'Uno',  face:1, hint:'Somma dei dadi con 1'},
+  {k:'twos',  label:'Due',  face:2, hint:'Somma dei dadi con 2'},
+  {k:'threes',label:'Tre',  face:3, hint:'Somma dei dadi con 3'},
+  {k:'fours', label:'Quattro',face:4, hint:'Somma dei dadi con 4'},
+  {k:'fives', label:'Cinque',face:5, hint:'Somma dei dadi con 5'},
+  {k:'sixes', label:'Sei',  face:6, hint:'Somma dei dadi con 6'},
+];
+const LO = [
+  {k:'tris',   label:'Tris',          hint:'3 uguali · somma di tutti i dadi'},
+  {k:'poker',  label:'Poker',         hint:'4 uguali · somma di tutti i dadi'},
+  {k:'full',   label:'Full',          hint:'3 + 2 uguali · 25 punti', fixed:25},
+  {k:'ss',     label:'Scala piccola', hint:'4 in sequenza · 30 punti', fixed:30},
+  {k:'ls',     label:'Scala grande',  hint:'5 in sequenza · 40 punti', fixed:40},
+  {k:'yahtzee',label:'Yahtzee',       hint:'5 uguali · 50 punti', fixed:50},
+  {k:'chance', label:'Chance',        hint:'Qualsiasi · somma di tutti i dadi'},
+];
+const CATS = [...UP, ...LO];
+const CAT = Object.fromEntries(CATS.map(c => [c.k, c]));
+const NCATS = CATS.length;
+const COLORS = ['#d9534f','#e8883a','#d4a017','#3f9b5a','#2f8f9d','#3b6fd1','#7a52c7','#c04b8e','#6b6257'];
+const EMOJIS = ['🙂','😎','🤠','🦊','🐻','🐼','🐸','🦁','🐯','🐙','🦄','🐝','🌵','🍀','🔥','⭐','🎲','🚀','👑','🍕','☕','⚽','🎸','👵','👴'];
+
+const PRESET = ['Ale','Laura','Roby','Jo','Sere','Fra','Steu','Monica'];
+const PRESET_EMOJI = ['😎','🦊','🐻','🐸','🦄','🐯','🚀','🐝'];
+function defaults(){
+  return {
+    players: PRESET.map((n,i) => ({id:'p-'+n.toLowerCase(), name:n, nick:'', emoji:PRESET_EMOJI[i], color:COLORS[i % COLORS.length], created:0})),
+    current:null, games:[], prefs:{mode:'guided'},
+    diceStats:{rolls:0, faces:[0,0,0,0,0,0,0], yahtzees:0},
+  };
+}
+function load(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(raw){ const d = JSON.parse(raw); return Object.assign(defaults(), d, {prefs:Object.assign(defaults().prefs, d.prefs||{})}); }
+  }catch(e){}
+  return defaults();
+}
+let S = load();
+function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(S)); }catch(e){ toast('Attenzione: il browser non permette di salvare'); } }
+
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const player = id => S.players.find(p => p.id === id);
+const fmtDate = t => new Date(t).toLocaleDateString('it-IT',{day:'numeric',month:'short',year:'numeric'});
+const fmtDateTime = t => fmtDate(t) + ', ' + new Date(t).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+
+function calc(sc, yb){
+  const upper = UP.reduce((a,c) => a + (sc[c.k] ?? 0), 0);
+  const bonus = upper >= 63 ? 35 : 0;
+  const lower = LO.reduce((a,c) => a + (sc[c.k] ?? 0), 0);
+  const yBonus = (yb || 0) * 100;
+  const filled = CATS.filter(c => sc[c.k] != null).length;
+  // massimo ancora raggiungibile nella sezione superiore
+  const upperMax = upper + UP.filter(c => sc[c.k] == null).reduce((a,c) => a + c.face*5, 0);
+  return {upper, bonus, upperTot:upper+bonus, lower, yBonus, lowerTot:lower+yBonus, total:upper+bonus+lower+yBonus, filled, upperMax};
+}
+
+function diceScore(k, dice, joker){
+  const cnt = [0,0,0,0,0,0,0]; dice.forEach(d => cnt[d]++);
+  const sum = dice.reduce((a,b) => a+b, 0);
+  const max = Math.max(...cnt);
+  const has = s => s.every(n => cnt[n] > 0);
+  const c = CAT[k];
+  if(c.face) return cnt[c.face] * c.face;
+  switch(k){
+    case 'tris':  return max >= 3 ? sum : 0;
+    case 'poker': return max >= 4 ? sum : 0;
+    case 'full':  return (joker || (cnt.includes(3) && cnt.includes(2))) ? 25 : 0;
+    case 'ss':    return (joker || has([1,2,3,4]) || has([2,3,4,5]) || has([3,4,5,6])) ? 30 : 0;
+    case 'ls':    return (joker || has([1,2,3,4,5]) || has([2,3,4,5,6])) ? 40 : 0;
+    case 'yahtzee': return max === 5 ? 50 : 0;
+    case 'chance':  return sum;
+  }
+  return 0;
+}
+
+function guidedOptions(c){
+  if(c.face) return [0,1,2,3,4,5].map(n => n*c.face);
+  if(c.fixed) return [c.fixed, 0];
+  const arr = c.k === 'chance' ? [] : [0];
+  for(let i=5; i<=30; i++) arr.push(i);
+  return arr;
+}
+
+/* ===================== Utility UI ===================== */
+const PIPS = {1:[[50,50]],2:[[28,28],[72,72]],3:[[28,28],[50,50],[72,72]],4:[[28,28],[72,28],[28,72],[72,72]],5:[[28,28],[72,28],[50,50],[28,72],[72,72]],6:[[28,25],[72,25],[28,50],[72,50],[28,75],[72,75]]};
+function die(n, size=24){
+  return `<svg class="die" width="${size}" height="${size}" viewBox="0 0 100 100" role="img" aria-label="${n}"><rect x="5" y="5" width="90" height="90" rx="20"/>${(PIPS[n]||[]).map(([x,y]) => `<circle cx="${x}" cy="${y}" r="9.5"/>`).join('')}</svg>`;
+}
+function av(p, cls=''){
+  return `<span class="av ${cls}" style="--pc:${p.color||'#888'}">${esc(p.emoji||'🙂')}</span>`;
+}
+let toastT;
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2200);
+}
+const dlg = document.getElementById('dlg');
+dlg.addEventListener('click', e => { if(e.target === dlg) dlg.close(); });
+dlg.addEventListener('close', () => { M = null; if(askResolve){ askResolve(null); askResolve = null; } });
+
+let askResolve = null;
+function ask(title, msg, buttons){
+  return new Promise(res => {
+    dlg.innerHTML = `<div class="dlg-h"><div class="ttl">${title}</div></div>
+      <div class="dlg-b"><p style="margin:0">${msg}</p></div>
+      <div class="dlg-f">${buttons.map((b,i) => `<button class="btn ${b.kind||''}" data-ask="${i}">${b.label}</button>`).join('')}</div>`;
+    askResolve = res;
+    dlg.querySelectorAll('[data-ask]').forEach(el => el.onclick = () => {
+      const v = buttons[+el.dataset.ask].value; askResolve = null; dlg.close(); res(v);
+    });
+    if(!dlg.open) dlg.showModal();
+  });
+}
+
+/* ===================== Navigazione ===================== */
+let tab = 'game';
+let pickSel = [];       // giocatori scelti per la nuova partita
+let editId = null;      // giocatore in modifica
+let form = null;        // bozza form giocatore
+let flashCell = null;
+let newMode = 'real';   // 'real' = segnapunti, 'virtual' = dadi virtuali
+let statsOpen = false;
+
+function render(){
+  document.querySelectorAll('#nav button').forEach(b => b.setAttribute('aria-current', b.dataset.tab === tab));
+  const v = document.getElementById('view');
+  v.innerHTML = ({game:viewGame, players:viewPlayers, history:viewHistory, records:viewRecords, rules:viewRules})[tab]();
+  if(tab === 'players') wirePlayerForm();
+}
+
+/* ===================== Vista: Partita ===================== */
+function viewGame(){
+  if(!S.current) return viewNewGame();
+  const g = S.current;
+  const ids = g.playerIds;
+  const tots = Object.fromEntries(ids.map(id => [id, calc(g.scores[id], g.yb[id])]));
+  const minFilled = Math.min(...ids.map(id => tots[id].filled));
+  const nowId = minFilled >= NCATS ? null : ids.find(id => tots[id].filled === minFilled);
+  const best = Math.max(...ids.map(id => tots[id].total));
+  const P = id => player(id) || {name:'(eliminato)', emoji:'❔', color:'#888'};
+  const nowP = nowId ? P(nowId) : null;
+
+  const th = ids.map(id => {
+    const p = P(id);
+    return `<th class="${id===nowId?'now':''}" style="--pc:${p.color}">${av(p)}<span class="nm" title="${esc(p.name)}">${esc(p.name)}</span>${id===nowId?'<span class="tag">tocca a te</span>':`<span class="mini">${tots[id].filled}/${NCATS}</span>`}</th>`;
+  }).join('');
+
+  const rolled = g.virtual && g.roll.n > 0 && nowId;
+  const js = rolled ? jokerState(g.scores[nowId], g.roll.dice) : null;
+  const cellRow = c => `<tr><th class="lab" scope="row"><span class="t">${c.face?die(c.face,20):''}${c.label}</span><span class="h">${c.hint}</span></th>${ids.map(id => {
+      const v = g.scores[id][c.k]; const p = P(id);
+      let cls = v == null ? 'empty' : (v === 0 ? 'zero' : '');
+      let content = v == null ? '' : v;
+      if(g.virtual && v == null){
+        if(rolled && id === nowId && (!js.allowed || js.allowed.includes(c.k))){
+          cls = 'pvcell'; content = `<span class="pv">${diceScore(c.k, g.roll.dice, js.joker)}</span>`;
+        } else cls = 'empty locked';
+      } else if(g.virtual) cls += ' locked';
+      const fl = flashCell === id+'|'+c.k ? ' flash' : '';
+      return `<td class="${id===nowId?'now':''}" style="--pc:${p.color}"><button class="cell ${cls}${fl}" data-act="cell" data-p="${id}" data-k="${c.k}" aria-label="${esc(p.name)}, ${c.label}">${content}</button></td>`;
+    }).join('')}</tr>`;
+
+  const totRow = (label, hint, fn, cls='tot') => `<tr class="${cls}"><th class="lab" scope="row"><span class="t">${label}</span>${hint?`<span class="h">${hint}</span>`:''}</th>${ids.map(id => `<td class="${cls==='tot'&&id===nowId?'now':''}" style="--pc:${P(id).color}">${fn(tots[id], id)}</td>`).join('')}</tr>`;
+
+  const bonusCell = t => {
+    if(t.bonus) return `<span class="ok">35 ✓</span>`;
+    if(t.upperMax < 63) return `<span class="mini">0 · perso</span>`;
+    return `<span class="mini">mancano ${63 - t.upper}</span>`;
+  };
+  const ybCell = (t, id) => `<button class="cell bonuscell ${g.virtual?'locked':''}" data-act="${g.virtual?'':'yb'}" data-p="${id}">${g.yb[id] ? `${g.yb[id]} × 100` : '<span class="mini">—</span>'}</button>`;
+  const grandCell = (t) => `${t.total}${t.total === best && best > 0 && ids.length > 1 ? ' <span class="crown">👑</span>' : ''}`;
+
+  return `
+  <div class="gamebar">
+    ${nowP ? `<div class="turn" style="--pc:${nowP.color}">${av(nowP)}<div><span class="lbl">Turno ${minFilled+1} di ${NCATS} · tocca a</span><b>${esc(nowP.name)}</b></div></div>`
+           : `<div class="turn"><span class="av" style="--pc:var(--gold)">🏁</span><div><b>Cartelle complete</b></div></div>`}
+    <span class="spacer"></span>
+    <button class="btn" data-act="undo" ${g.undo.length?'':'disabled'} title="Annulla l'ultima modifica">↶ Annulla</button>
+    <button class="btn danger" data-act="end">Termina partita</button>
+  </div>
+  ${g.virtual && nowId ? trayHTML(g, nowId) : ''}
+  <div class="sheet-wrap" ${g.virtual?'style="margin-top:16px"':''}>
+    <table class="sheet">
+      <thead><tr><th class="lab" style="vertical-align:bottom"><span class="h">Iniziata ${fmtDateTime(g.started)}</span></th>${th}</tr></thead>
+      <tbody>
+        <tr class="sec"><th colspan="${ids.length+1}">Sezione superiore</th></tr>
+        ${UP.map(cellRow).join('')}
+        ${totRow('Somma', 'Uno … Sei', t => t.upper)}
+        ${totRow('Bonus', 'Con 63 o più: +35', bonusCell)}
+        ${totRow('Totale superiore', '', t => t.upperTot)}
+        <tr class="sec"><th colspan="${ids.length+1}">Sezione inferiore</th></tr>
+        ${LO.map(cellRow).join('')}
+        ${totRow('Bonus Yahtzee', '+100 per ogni Yahtzee extra', ybCell, 'tot')}
+        ${totRow('Totale inferiore', '', t => t.lowerTot)}
+        ${totRow('TOTALE', '', grandCell, 'grand')}
+      </tbody>
+    </table>
+  </div>
+  <p class="tip">${g.virtual
+    ? 'Dopo il lancio, nella colonna di chi gioca compaiono i punti possibili: tocca la casella che vuoi. Per correggere usa “Annulla”.'
+    : 'Tocca una casella per segnare il punteggio (anche per correggerla). Lo zero barrato indica una casella sacrificata.'}</p>
+  ${g.virtual && g.rolls ? `<details class="sum card" id="gstats" ${statsOpen?'open':''}><summary>📊 Statistica dei dadi di questa partita (${g.rolls} lanci, ${g.faces.reduce((a,b)=>a+b,0)} dadi)</summary>${faceBars(g.faces)}</details>` : ''}`;
+}
+
+function viewNewGame(){
+  if(!S.players.length){
+    return `<div class="card empty-state"><div class="big">🎲</div><h2>Benvenuti!</h2><p>Per iniziare aggiungi almeno un giocatore.</p><button class="btn primary" data-act="tab" data-tab="players">+ Aggiungi giocatori</button></div>`;
+  }
+  pickSel = pickSel.filter(id => player(id));
+  return `<div class="banner"><span style="font-size:28px">💾</span><div class="txt"><b>Hai un file di backup?</b><span>Caricalo prima di iniziare per ritrovare giocatori, storico e record. A fine partita ricordati di scaricarlo di nuovo.</span></div>
+    <button class="btn primary" data-act="import">⬆ Carica backup</button></div>
+  <div class="card">
+    <h2>Nuova partita</h2>
+    <p class="sub">Scegli come giocare.</p>
+    <div class="modepick">
+      <button data-act="newmode" data-m="real" aria-pressed="${newMode==='real'}"><b>📝 Segnapunti</b><span>Lanciate i dadi veri sul tavolo, qui segnate i punti.</span></button>
+      <button data-act="newmode" data-m="virtual" aria-pressed="${newMode==='virtual'}"><b>🎲 Dadi virtuali</b><span>I dadi li lancia il programma: 3 lanci a turno, tocchi i dadi da tenere. Anche da soli.</span></button>
+    </div>
+    <p class="sub">Tocca i giocatori che partecipano, nell'ordine in cui giocheranno.</p>
+    <div class="pick">${S.players.map(p => {
+      const i = pickSel.indexOf(p.id);
+      return `<button class="chip ${i>=0?'on':''}" style="--pc:${p.color}" data-act="pick" data-p="${p.id}" aria-pressed="${i>=0}">${av(p)}${esc(p.name)}${i>=0?`<span class="ord">${i+1}</span>`:''}</button>`;
+    }).join('')}</div>
+    <div class="row">
+      <button class="btn" data-act="pickall">Tutti</button>
+      <button class="btn" data-act="shuffle" ${pickSel.length<2?'disabled':''}>🔀 Ordine casuale</button>
+      <button class="btn" data-act="tab" data-tab="players">+ Nuovo giocatore</button>
+      <span style="flex:1"></span>
+      <button class="btn primary" data-act="start" ${pickSel.length?'':'disabled'}>Inizia partita${pickSel.length?` (${pickSel.length})`:''} →</button>
+    </div>
+  </div>
+  ${S.games.length ? `<div class="card"><h3>Ultima partita</h3>${histCard(S.games[0], false)}</div>` : ''}`;
+}
+
+const freshRoll = () => ({dice:[0,0,0,0,0], held:[false,false,false,false,false], n:0});
+function startGame(virtual = newMode === 'virtual'){
+  const g = {id:uid(), started:Date.now(), playerIds:[...pickSel], scores:{}, yb:{}, undo:[], virtual};
+  if(virtual){ g.roll = freshRoll(); g.faces = [0,0,0,0,0,0,0]; g.rolls = 0; }
+  pickSel.forEach(id => { g.scores[id] = {}; g.yb[id] = 0; });
+  S.current = g; pickSel = []; save(); render();
+}
+
+function pushUndo(){
+  const g = S.current;
+  g.undo.push(JSON.stringify({scores:g.scores, yb:g.yb, roll:g.roll}));
+  if(g.undo.length > 60) g.undo.shift();
+}
+function undo(){
+  const g = S.current; if(!g || !g.undo.length) return;
+  const s = JSON.parse(g.undo.pop()); g.scores = s.scores; g.yb = s.yb; if(s.roll) g.roll = s.roll;
+  save(); render(); toast('Ultima modifica annullata');
+}
+
+/* ---------- Dadi virtuali ---------- */
+// dado equo: crypto con scarto per evitare distorsioni (ogni faccia 1/6 esatto)
+function d6(){
+  const a = new Uint8Array(1);
+  do { crypto.getRandomValues(a); } while(a[0] >= 252);
+  return a[0] % 6 + 1;
+}
+let spinIdx = [];
+function nowPlayer(g){
+  const t = g.playerIds.map(id => calc(g.scores[id], g.yb[id]).filled);
+  const m = Math.min(...t);
+  return m >= NCATS ? null : g.playerIds[t.indexOf(m)];
+}
+function rollDice(){
+  const g = S.current, r = g.roll;
+  if(!g.virtual || r.n >= 3 || !nowPlayer(g)) return;
+  if(r.n > 0 && r.held.every(Boolean)){ toast('Hai tenuto tutti i dadi: scegli una casella'); return; }
+  spinIdx = [];
+  r.dice = r.dice.map((v,i) => { if(r.n > 0 && r.held[i]) return v; spinIdx.push(i); const x = d6(); g.faces[x]++; S.diceStats.faces[x]++; return x; });
+  r.n++; g.rolls++; S.diceStats.rolls++;
+  if(r.n === 1) r.held = [false,false,false,false,false];
+  const isY = r.dice.every(x => x === r.dice[0]);
+  if(isY){ S.diceStats.yahtzees++; toast('🎉 YAHTZEE!'); }
+  save(); render(); spinIdx = [];
+}
+function toggleHold(i){
+  const r = S.current.roll;
+  if(r.n === 0 || r.n >= 3) return;
+  r.held[i] = !r.held[i]; save(); render();
+}
+// regola del jolly: quali caselle sono ammesse con questi dadi
+function jokerState(sc, dice){
+  const isY = dice[0] > 0 && dice.every(x => x === dice[0]);
+  if(!isY || sc.yahtzee == null) return {isY, joker:false, allowed:null};
+  const upK = UP[dice[0]-1].k;
+  if(sc[upK] == null) return {isY, joker:false, allowed:[upK]};
+  const lowOpen = LO.filter(c => sc[c.k] == null).map(c => c.k);
+  if(lowOpen.length) return {isY, joker:true, allowed:lowOpen};
+  return {isY, joker:true, allowed:UP.filter(c => sc[c.k] == null).map(c => c.k)};
+}
+function scoreVirtual(pid, k){
+  const g = S.current, sc = g.scores[pid], d = g.roll.dice;
+  const js = jokerState(sc, d);
+  if(js.allowed && !js.allowed.includes(k)){
+    toast(js.joker ? 'Regola del jolly: usa una casella inferiore libera' : `Regola del jolly: devi segnare in “${CAT[js.allowed[0]].label}”`);
+    return;
+  }
+  const v = diceScore(k, d, js.joker);
+  const bonus = js.isY && sc.yahtzee === 50;
+  pushUndo();
+  sc[k] = v; if(bonus) g.yb[pid] = (g.yb[pid]||0) + 1;
+  g.roll = freshRoll();
+  flashCell = pid + '|' + k;
+  save(); render(); flashCell = null;
+  toast(`${(player(pid)||{}).name}: ${v} in ${CAT[k].label}${bonus ? ' · +100 bonus!' : ''}`);
+  if(isComplete(g)) setTimeout(() => finishGame(true), 600);
+}
+// probabilità di completare uno Yahtzee nei lanci rimasti, tenendo il gruppo più numeroso
+function yahtzeeChance(k, rolls){
+  const C = (n,r) => { let x = 1; for(let i=1;i<=r;i++) x = x*(n-r+i)/i; return x; };
+  let p = [0,0,0,0,0,0]; p[k] = 1;
+  for(let t=0; t<rolls; t++){
+    const q = [0,0,0,0,0,0];
+    for(let s=0; s<=5; s++){
+      if(!p[s]) continue;
+      if(s === 5){ q[5] += p[s]; continue; }
+      const m = 5 - s;
+      for(let j=0; j<=m; j++) q[s+j] += p[s] * C(m,j) * Math.pow(1/6,j) * Math.pow(5/6,m-j);
+    }
+    p = q;
+  }
+  return p[5];
+}
+const pct = x => (x*100).toLocaleString('it-IT', {maximumFractionDigits: x < .01 ? 2 : 1}) + '%';
+function faceBars(faces){
+  const tot = faces.reduce((a,b) => a+b, 0);
+  const max = Math.max(1/6, ...faces.slice(1).map(f => tot ? f/tot : 0)) * 1.25;
+  return `<div class="bars">${[1,2,3,4,5,6].map(n => {
+    const share = tot ? faces[n]/tot : 0;
+    return `<div class="bar"><div class="track"><div class="fill" style="height:${share/max*100}%"></div><div class="exp" style="bottom:${(1/6)/max*100}%"></div></div>${die(n,20)}<b>${tot ? pct(share) : '—'}</b><span class="mini">${faces[n]}</span></div>`;
+  }).join('')}</div><p class="mini" style="margin-top:8px">Linea tratteggiata = valore atteso 16,7% (1 su 6). Più lanci fai, più le barre si avvicinano alla linea.</p>`;
+}
+function trayHTML(g, nowId){
+  const r = g.roll, p = player(nowId) || {name:'?'};
+  const dice = r.dice.map((v,i) => `<button class="vd ${r.held[i] && r.n>0 && r.n<3 ? 'held':''} ${spinIdx.includes(i)?'spin':''}" data-act="hold" data-i="${i}" aria-pressed="${r.held[i]}" aria-label="Dado ${i+1}${v?': '+v:''}" ${r.n===0||r.n>=3?'tabindex="-1"':''}>${v ? die(v,64) : '<span class="q">?</span>'}</button>`).join('');
+  let info;
+  if(r.n === 0) info = `Tocca a <b>${esc(p.name)}</b>: lancia i dadi (barra spaziatrice).`;
+  else {
+    const cnt = [0,0,0,0,0,0,0]; r.dice.forEach(x => cnt[x]++);
+    const k = Math.max(...cnt);
+    const ych = k === 5 ? null : yahtzeeChance(k, 3 - r.n);
+    info = (r.n < 3 ? 'Tocca i dadi da tenere e rilancia, oppure ' : 'Lanci finiti: ') + `scegli una casella nella colonna di <b>${esc(p.name)}</b>.`
+      + (ych != null && r.n < 3 ? `<br>Probabilità di Yahtzee con i lanci rimasti (tenendo i ${k} uguali): <b>${pct(ych)}</b>` : '');
+  }
+  return `<div class="card tray">
+    <div class="vdice">${dice}</div>
+    <button class="btn primary big" data-act="roll" ${r.n>=3?'disabled':''}>🎲 ${r.n===0?'Lancia':'Rilancia'} · ${r.n}/3</button>
+    <div class="trayinfo">${info}</div>
+  </div>`;
+}
+
+function isComplete(g){ return g.playerIds.every(id => calc(g.scores[id], g.yb[id]).filled === NCATS); }
+
+async function endGame(){
+  const g = S.current;
+  if(isComplete(g)) return finishGame(true);
+  const v = await ask('Terminare la partita?', 'Alcune caselle sono ancora vuote. Le partite incomplete vengono salvate nello storico ma <b>non contano</b> per record e statistiche.',
+    [{label:'Continua a giocare', value:null}, {label:'Elimina partita', value:'discard', kind:'danger'}, {label:'Salva nello storico', value:'save', kind:'primary'}]);
+  if(v === 'save') finishGame(false);
+  else if(v === 'discard'){ S.current = null; save(); render(); toast('Partita eliminata'); }
+}
+
+function finishGame(complete){
+  const g = S.current;
+  const prevBest = Math.max(-Infinity, ...S.games.filter(x => x.complete).flatMap(x => x.results.map(r => r.total)));
+  const results = g.playerIds.map(id => {
+    const p = player(id) || {name:'?', emoji:'❔', color:'#888'};
+    return {pid:id, name:p.name, emoji:p.emoji, color:p.color, scores:{...g.scores[id]}, yb:g.yb[id]||0, ...calc(g.scores[id], g.yb[id])};
+  });
+  const max = Math.max(...results.map(r => r.total));
+  const game = {id:g.id, started:g.started, ended:Date.now(), complete, virtual:!!g.virtual, results, winners:results.filter(r => r.total === max).map(r => r.pid)};
+  S.games.unshift(game); S.current = null; save(); render();
+  showFinal(game, complete && results.length && max > prevBest ? max : null);
+}
+
+function showFinal(game, newRecord){
+  const sorted = [...game.results].sort((a,b) => b.total - a.total);
+  const medals = ['🥇','🥈','🥉'];
+  let pos = 0, last = null;
+  const rows = sorted.map((r,i) => {
+    if(r.total !== last){ pos = i; last = r.total; }
+    const win = game.winners.includes(r.pid);
+    return `<div class="f ${win?'win':''}"><span class="pos">${medals[pos] || (pos+1)+'°'}</span>${av(r)}<span class="n">${esc(r.name)}${newRecord && r.total===newRecord?'<span class="newrec">NUOVO RECORD</span>':''}</span><span class="s">${r.total}</span></div>`;
+  }).join('');
+  const w = sorted.filter(r => game.winners.includes(r.pid)).map(r => esc(r.name));
+  dlg.innerHTML = `<div class="dlg-h"><div style="font-size:34px">🏆</div><div><div class="ttl">${game.complete ? 'Partita finita!' : 'Partita salvata'}</div><div class="hh">${w.length>1 ? 'Pareggio tra ' + w.join(' e ') : 'Vince ' + w[0]}</div></div></div>
+    <div class="dlg-b"><div class="final-list">${rows}</div>
+      <div class="note" style="margin-top:14px">💾 Partita salvata nello storico. Scarica il backup per non perderla.</div></div>
+    <div class="dlg-f"><button class="btn left" data-act="export">⬇ Scarica backup</button><button class="btn" data-act="close">Chiudi</button><button class="btn primary" data-act="rematch" data-g="${game.id}">Rivincita ↻</button></div>`;
+  dlg.showModal();
+}
+
+/* ---------- Modale punteggio ---------- */
+let M = null;
+function openScore(pid, k){
+  M = {pid, k, mode:S.prefs.mode || 'guided', dice:[], extra:false};
+  renderScore();
+  if(!dlg.open) dlg.showModal();
+  focusManual();
+}
+function focusManual(){ if(M && M.mode === 'manual'){ const i = document.getElementById('manual'); if(i){ i.focus(); i.select(); } } }
+
+function diceInfo(){
+  const g = S.current, c = CAT[M.k];
+  const sc = {...g.scores[M.pid], [M.k]: null}; // la casella che si sta compilando conta come libera
+  const d = M.dice;
+  if(d.length < 5) return null;
+  const isY = d.every(x => x === d[0]);
+  const upK = isY ? UP[d[0]-1].k : null;
+  const joker = isY && sc.yahtzee != null && sc[upK] != null;
+  let warn = '';
+  if(isY && sc.yahtzee != null){
+    if(sc[upK] == null && M.k !== upK) warn = `Regola del jolly: con uno Yahtzee di ${d[0]} si deve segnare prima nella casella “${UP[d[0]-1].label}”, che è ancora libera.`;
+    else if(sc[upK] != null && c.face && LO.some(x => sc[x.k] == null)) warn = 'Regola del jolly: la casella superiore di questo numero è già usata, quindi si deve scegliere una casella libera della sezione inferiore.';
+  }
+  const bonus = isY && g.scores[M.pid].yahtzee === 50 && M.k !== 'yahtzee';
+  return {score:diceScore(M.k, d, joker), bonus, joker, warn};
+}
+
+function renderScore(){
+  const g = S.current, c = CAT[M.k], p = player(M.pid) || {name:'?',emoji:'❔',color:'#888'};
+  const cur = g.scores[M.pid][M.k];
+  const has = cur != null;
+  const canExtra = M.k !== 'yahtzee' && g.scores[M.pid].yahtzee === 50;
+  const extraBox = canExtra ? `<label class="extra"><input type="checkbox" data-act="extra" ${M.extra?'checked':''}> È un altro Yahtzee: aggiungi +100 di bonus</label>` : '';
+  let body = '';
+
+  if(M.mode === 'guided'){
+    const opts = guidedOptions(c);
+    body = extraBox + `<div class="opts ${(c.face||c.fixed)?'big':''}">${opts.map(v => {
+      let sm = '';
+      if(v === 0) sm = '<small>barra</small>';
+      else if(c.face) sm = `<small>${v/c.face} ${v/c.face===1?'dado':'dadi'}</small>`;
+      return `<button class="opt ${v===0?'zero':''} ${has&&cur===v?'sel':''}" data-act="pickv" data-v="${v}">${v}${sm}</button>`;
+    }).join('')}</div>`;
+  } else if(M.mode === 'dice'){
+    const info = diceInfo();
+    body = `<div class="slots">${[0,1,2,3,4].map(i => M.dice[i] ? `<button class="slot full" data-act="undie" data-i="${i}" title="Togli">${die(M.dice[i],52)}</button>` : `<div class="slot"></div>`).join('')}</div>
+      <div class="pad">${[1,2,3,4,5,6].map(n => `<button data-act="adddie" data-n="${n}" ${M.dice.length>=5?'disabled':''} aria-label="Dado ${n}">${die(n,42)}</button>`).join('')}</div>
+      <div class="preview">${info ? `<div class="mini">Punti in “${c.label}”</div><div class="v">${info.score}</div>${info.bonus?'<div class="mini ok" style="margin-top:4px">+100 Bonus Yahtzee</div>':''}${info.joker?'<div class="mini" style="margin-top:4px">Jolly applicato</div>':''}`
+                                 : `<div class="mini">Tocca i dadi usciti (${M.dice.length}/5) · tasti 1–6 da tastiera</div>`}</div>
+      ${info && info.warn ? `<div class="warn">${info.warn}</div>` : ''}`;
+  } else {
+    body = extraBox + `<div class="manual"><input id="manual" type="number" inputmode="numeric" min="0" step="1" value="${has?cur:''}" placeholder="0"><button class="btn primary" data-act="manualok">Segna</button></div><div id="mwarn"></div>`;
+  }
+
+  const info = M.mode === 'dice' ? diceInfo() : null;
+  dlg.innerHTML = `<div class="dlg-h">${av(p)}<div><div class="ttl">${esc(p.name)} · ${c.label}</div><div class="hh">${c.hint}${has?` · ora: <b>${cur}</b>`:''}</div></div></div>
+    <div class="dlg-b">
+      <div class="modes" role="group" aria-label="Modo di inserimento">
+        <button data-act="mode" data-m="guided" aria-pressed="${M.mode==='guided'}">Scelta guidata</button>
+        <button data-act="mode" data-m="dice" aria-pressed="${M.mode==='dice'}">Dadi</button>
+        <button data-act="mode" data-m="manual" aria-pressed="${M.mode==='manual'}">Numero</button>
+      </div>
+      ${body}
+    </div>
+    <div class="dlg-f">
+      ${has ? '<button class="btn danger left" data-act="clearcell">Svuota casella</button>' : ''}
+      <button class="btn" data-act="close">Annulla</button>
+      ${M.mode==='dice' ? `<button class="btn primary" data-act="dicedok" ${info?'':'disabled'}>Segna${info?' '+info.score:''}</button>` : ''}
+    </div>`;
+
+  const mi = document.getElementById('manual');
+  if(mi){
+    const check = () => {
+      const v = mi.value === '' ? null : Number(mi.value);
+      const w = document.getElementById('mwarn');
+      if(v == null) w.innerHTML = '';
+      else if(!Number.isInteger(v) || v < 0) w.innerHTML = '<div class="warn">Inserisci un numero intero da 0 in su.</div>';
+      else if(!guidedOptions(c).includes(v)) w.innerHTML = `<div class="note">Valore insolito per “${c.label}”: controlla prima di segnare.</div>`;
+      else w.innerHTML = '';
+    };
+    mi.addEventListener('input', check);
+    mi.addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); manualOk(); } });
+    check();
+  }
+}
+
+function commit(v, addBonus){
+  const g = S.current;
+  pushUndo();
+  g.scores[M.pid][M.k] = v;
+  if(addBonus) g.yb[M.pid] = (g.yb[M.pid] || 0) + 1;
+  const name = (player(M.pid)||{}).name, lab = CAT[M.k].label;
+  flashCell = M.pid + '|' + M.k;
+  save(); dlg.close(); render(); flashCell = null;
+  toast(`${name}: ${v} in ${lab}${addBonus ? ' · +100 bonus!' : ''}`);
+  if(isComplete(g)) setTimeout(() => finishGame(true), 600);
+}
+function manualOk(){
+  const mi = document.getElementById('manual');
+  const v = Number(mi.value);
+  if(mi.value === '' || !Number.isInteger(v) || v < 0){ mi.focus(); return; }
+  commit(v, M.extra);
+}
+
+function openYB(pid){
+  const g = S.current, p = player(pid) || {name:'?',emoji:'❔',color:'#888'};
+  const can = g.scores[pid].yahtzee === 50;
+  dlg.innerHTML = `<div class="dlg-h">${av(p)}<div><div class="ttl">${esc(p.name)} · Bonus Yahtzee</div><div class="hh">+100 per ogni Yahtzee dopo il primo da 50</div></div></div>
+    <div class="dlg-b">
+      <div class="stepper"><button class="btn" data-act="ybm" data-p="${pid}" ${g.yb[pid]?'':'disabled'}>−</button><span class="n">${g.yb[pid]||0}</span><button class="btn" data-act="ybp" data-p="${pid}" ${can?'':'disabled'}>+</button></div>
+      <p class="mini" style="text-align:center">${can ? `= ${(g.yb[pid]||0)*100} punti` : 'Il bonus si ottiene solo se nella casella Yahtzee sono già segnati 50 punti.'}</p>
+    </div>
+    <div class="dlg-f"><button class="btn primary" data-act="close">Fatto</button></div>`;
+  if(!dlg.open) dlg.showModal();
+}
+
+/* ===================== Vista: Giocatori ===================== */
+function blankForm(){ return {name:'', nick:'', emoji:EMOJIS[S.players.length % EMOJIS.length], color:COLORS[S.players.length % COLORS.length]}; }
+function viewPlayers(){
+  if(!form) form = blankForm();
+  const st = playerStats();
+  return `<div class="card">
+    <h2>${editId ? 'Modifica giocatore' : 'Nuovo giocatore'}</h2>
+    <p class="sub">${editId ? 'Cambia i dati e salva.' : 'Aggiungi chi gioca: lo ritroverai in tutte le partite.'}</p>
+    <form class="form" id="pform" autocomplete="off">
+      <div class="two">
+        <div class="field"><label for="f-name">Nome *</label><input type="text" id="f-name" maxlength="24" required value="${esc(form.name)}" placeholder="Es. Nonna Pina"></div>
+        <div class="field"><label for="f-nick">Soprannome / nota</label><input type="text" id="f-nick" maxlength="30" value="${esc(form.nick)}" placeholder="Facoltativo"></div>
+      </div>
+      <div class="field"><label>Simbolo</label><div class="emojis">${EMOJIS.map(e => `<button type="button" data-act="femoji" data-v="${e}" aria-pressed="${form.emoji===e}">${e}</button>`).join('')}</div></div>
+      <div class="field"><label>Colore</label><div class="colors">${COLORS.map(c => `<button type="button" style="--c:${c}" data-act="fcolor" data-v="${c}" aria-pressed="${form.color===c}" aria-label="Colore ${c}"></button>`).join('')}</div></div>
+      <div class="row">
+        <button class="btn primary" type="submit">${editId ? 'Salva modifiche' : '+ Aggiungi giocatore'}</button>
+        ${editId ? '<button class="btn" type="button" data-act="fcancel">Annulla</button>' : ''}
+      </div>
+    </form>
+  </div>
+  <div class="card">
+    <h2>Giocatori (${S.players.length})</h2>
+    ${S.players.length ? `<div class="plist" style="margin-top:12px">${S.players.map(p => {
+      const s = st[p.id];
+      return `<div class="pcard" style="--pc:${p.color}">${av(p)}<div class="info"><b>${esc(p.name)}</b><span>${p.nick ? esc(p.nick)+' · ' : ''}${s ? `${s.played} partite · ${s.wins} vinte · record ${s.best}` : 'Nessuna partita'}</span></div>
+        <div class="acts"><button class="icon-btn" data-act="pedit" data-p="${p.id}" title="Modifica">✏️</button><button class="icon-btn" data-act="pdel" data-p="${p.id}" title="Elimina">🗑️</button></div></div>`;
+    }).join('')}</div>` : '<p class="sub" style="margin-top:8px">Ancora nessuno. Aggiungi il primo qui sopra.</p>'}
+    ${S.players.length && !S.current ? '<div class="row" style="margin-top:16px"><button class="btn primary" data-act="tab" data-tab="game">Vai alla nuova partita →</button></div>' : ''}
+  </div>`;
+}
+function wirePlayerForm(){
+  const f = document.getElementById('pform'); if(!f) return;
+  const n = f.querySelector('#f-name'), k = f.querySelector('#f-nick');
+  n.oninput = () => form.name = n.value; k.oninput = () => form.nick = k.value;
+  f.onsubmit = e => {
+    e.preventDefault();
+    const name = n.value.trim();
+    if(!name){ n.focus(); return; }
+    if(S.players.some(p => p.name.toLowerCase() === name.toLowerCase() && p.id !== editId)){ toast('Esiste già un giocatore con questo nome'); n.focus(); return; }
+    if(editId){
+      Object.assign(player(editId), {name, nick:k.value.trim(), emoji:form.emoji, color:form.color});
+      toast('Giocatore aggiornato');
+    } else {
+      const p = {id:uid(), name, nick:k.value.trim(), emoji:form.emoji, color:form.color, created:Date.now()};
+      S.players.push(p);
+      if(!S.current) pickSel.push(p.id);
+      toast(`${name} aggiunto`);
+    }
+    editId = null; form = blankForm(); save(); render();
+    document.getElementById('f-name')?.focus();
+  };
+}
+async function deletePlayer(id){
+  const p = player(id);
+  if(S.current && S.current.playerIds.includes(id)){ toast(`${p.name} sta giocando la partita in corso`); return; }
+  const v = await ask('Eliminare giocatore?', `Vuoi eliminare <b>${esc(p.name)}</b>? Le partite già giocate restano nello storico.`, [{label:'Annulla', value:null}, {label:'Elimina', value:true, kind:'danger solid'}]);
+  if(!v) return;
+  S.players = S.players.filter(x => x.id !== id); pickSel = pickSel.filter(x => x !== id);
+  if(editId === id){ editId = null; form = null; }
+  save(); render(); toast('Giocatore eliminato');
+}
+
+/* ===================== Statistiche ===================== */
+function playerStats(){
+  const st = {};
+  S.games.filter(g => g.complete).forEach(g => g.results.forEach(r => {
+    const s = st[r.pid] ||= {played:0, wins:0, sum:0, best:-Infinity, worst:Infinity, yahtzee:0, bonus:0, bestDate:null};
+    s.played++; s.sum += r.total;
+    if(g.winners.includes(r.pid) && g.results.length > 1) s.wins++;
+    if(r.total > s.best){ s.best = r.total; s.bestDate = g.ended; }
+    s.worst = Math.min(s.worst, r.total);
+    s.yahtzee += (r.scores.yahtzee === 50 ? 1 : 0) + (r.yb || 0);
+    if(r.bonus) s.bonus++;
+  }));
+  Object.values(st).forEach(s => s.avg = s.sum / s.played);
+  return st;
+}
+function records(){
+  let hi = null, lo = null;
+  S.games.filter(g => g.complete).forEach(g => g.results.forEach(r => {
+    if(!hi || r.total > hi.r.total) hi = {r, date:g.ended};
+    if(!lo || r.total < lo.r.total) lo = {r, date:g.ended};
+  }));
+  return {hi, lo};
+}
+function liveP(r){ const p = player(r.pid); return p ? {...r, name:p.name, emoji:p.emoji, color:p.color} : r; }
+
+/* ===================== Vista: Storico ===================== */
+function histCard(g, actions=true){
+  const sorted = [...g.results].sort((a,b) => b.total - a.total).map(liveP);
+  return `<div class="hcard"><div class="top"><span class="date">${fmtDateTime(g.ended)}</span>
+      ${g.complete ? '' : '<span class="badge warn2">incompleta</span>'}
+      ${g.virtual ? '<span class="badge">🎲 dadi virtuali</span>' : ''}
+      <span class="badge">${g.results.length} ${g.results.length===1?'giocatore':'giocatori'}</span>
+      <span style="flex:1"></span>
+      <button class="btn sm" data-act="hview" data-g="${g.id}">Cartelle</button>
+      ${actions ? `<button class="icon-btn" data-act="hdel" data-g="${g.id}" title="Elimina dallo storico">🗑️</button>` : ''}</div>
+    <div class="rank">${sorted.map(r => `<span class="r ${g.winners.includes(r.pid)?'win':''}">${av(r)}${esc(r.name)} <b>${r.total}</b>${g.winners.includes(r.pid)&&g.results.length>1?' 👑':''}</span>`).join('')}</div></div>`;
+}
+function viewHistory(){
+  return `<div class="card"><h2>Storico partite</h2><p class="sub">${S.games.length ? `${S.games.length} partite salvate, dalla più recente.` : ''}</p>
+    ${S.games.length ? `<div class="hist">${S.games.map(g => histCard(g)).join('')}</div>` : '<div class="empty-state"><div class="big">📜</div>Nessuna partita finita, per ora.</div>'}</div>`;
+}
+function showGameSheets(gid){
+  const g = S.games.find(x => x.id === gid); if(!g) return;
+  const rs = g.results.map(liveP);
+  const row = (label, fn, cls='') => `<tr class="${cls}"><th class="lab" scope="row"><span class="t">${label}</span></th>${rs.map(r => `<td style="padding:8px 4px">${fn(r)}</td>`).join('')}</tr>`;
+  dlg.innerHTML = `<div class="dlg-h"><div><div class="ttl">Cartelle</div><div class="hh">${fmtDateTime(g.ended)}${g.complete?'':' · incompleta'}</div></div></div>
+    <div class="dlg-b"><div class="sheet-wrap" style="box-shadow:none"><table class="sheet">
+      <thead><tr><th class="lab"></th>${rs.map(r => `<th style="--pc:${r.color}">${av(r)}<span class="nm">${esc(r.name)}</span></th>`).join('')}</tr></thead>
+      <tbody>${UP.map(c => row(c.label, r => r.scores[c.k] ?? '—')).join('')}
+        ${row('Bonus', r => r.bonus, 'tot')}
+        ${LO.map(c => row(c.label, r => r.scores[c.k] ?? '—')).join('')}
+        ${row('Bonus Yahtzee', r => r.yBonus, 'tot')}
+        ${row('TOTALE', r => r.total, 'grand')}</tbody></table></div></div>
+    <div class="dlg-f"><button class="btn primary" data-act="close">Chiudi</button></div>`;
+  dlg.style.width = 'min(760px, calc(100vw - 24px))';
+  dlg.showModal();
+}
+dlg.addEventListener('close', () => dlg.style.width = '');
+
+/* ===================== Vista: Record ===================== */
+function viewRecords(){
+  const {hi, lo} = records();
+  const st = playerStats();
+  const recCard = (cls, title, x) => `<div class="rec ${cls}"><div class="k">${title}</div>${x
+    ? `<div class="v">${x.r.total}</div><div class="who">${av(liveP(x.r))}${esc(liveP(x.r).name)} <span>· ${fmtDate(x.date)}</span></div>`
+    : '<div class="v" style="color:var(--muted)">—</div><div class="who"><span>Gioca una partita completa</span></div>'}</div>`;
+  const rows = Object.entries(st).map(([pid, s]) => {
+    const p = player(pid) || (() => { for(const g of S.games){ const r = g.results.find(r => r.pid === pid); if(r) return r; } })();
+    return {p, s};
+  }).sort((a,b) => b.s.avg - a.s.avg);
+  return `<div class="records" style="margin-top:20px">
+      ${recCard('hi', '🏆 Punteggio più alto di sempre', hi)}
+      ${recCard('', '🐢 Punteggio più basso di sempre', lo)}
+    </div>
+    <div class="card"><h2>Statistiche giocatori</h2><p class="sub">Contano solo le partite completate.</p>
+      ${rows.length ? `<div class="tbl-wrap"><table class="stats"><thead><tr><th>Giocatore</th><th>Partite</th><th>Vinte</th><th>% vittorie</th><th>Media</th><th>Migliore</th><th>Peggiore</th><th>Yahtzee</th><th>Bonus 35</th></tr></thead><tbody>
+        ${rows.map(({p,s}) => `<tr><td>${av(p)}${esc(p.name)}</td><td>${s.played}</td><td>${s.wins}</td><td>${Math.round(s.wins/s.played*100)}%</td><td><b>${s.avg.toFixed(1).replace('.',',')}</b></td><td>${s.best}</td><td>${s.worst}</td><td>${s.yahtzee}</td><td>${Math.round(s.bonus/s.played*100)}%</td></tr>`).join('')}
+      </tbody></table></div>` : '<div class="empty-state"><div class="big">📊</div>Le statistiche compariranno dopo la prima partita completa.</div>'}
+    </div>
+    <div class="card"><h2>Statistica dei dadi virtuali</h2>
+      ${S.diceStats.rolls ? `<p class="sub">${S.diceStats.rolls} lanci in totale, ${S.diceStats.faces.reduce((a,b)=>a+b,0)} dadi tirati, ${S.diceStats.yahtzees} Yahtzee usciti direttamente da un lancio.</p>${faceBars(S.diceStats.faces)}`
+        : '<div class="empty-state"><div class="big">🎲</div>Comparirà dopo una partita con i dadi virtuali.</div>'}
+    </div>
+    <div class="card"><h3>Backup dei dati</h3><p class="sub">I dati sono salvati in questo browser. Scarica un file di backup per non perderli o per spostarli su un altro computer, e ricaricalo all'inizio.</p>
+      <div class="row"><button class="btn" data-act="export">⬇ Scarica backup</button><button class="btn" data-act="import">⬆ Carica backup</button></div>
+    </div>`;
+}
+function exportData(){
+  const blob = new Blob([JSON.stringify(S, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `yahtzee-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+function importData(){
+  const inp = document.getElementById('impfile');
+  inp.onchange = async () => {
+    const f = inp.files[0]; if(!f) return;
+    try{
+      const d = JSON.parse(await f.text());
+      if(!Array.isArray(d.players) || !Array.isArray(d.games)) throw 0;
+      const v = await ask('Importare il backup?', `Il file contiene ${d.players.length} giocatori e ${d.games.length} partite. <b>I dati attuali verranno sostituiti.</b>`, [{label:'Annulla', value:null}, {label:'Importa', value:true, kind:'primary'}]);
+      if(!v) return;
+      S = Object.assign(defaults(), d); save(); render(); toast('Backup importato');
+    }catch(e){ toast('File non valido'); }
+    inp.value = '';
+  };
+  inp.click();
+}
+
+/* ===================== Vista: Regole ===================== */
+function viewRules(){
+  return `<div class="card"><h2>Regole in breve</h2><p class="sub">Yahtzee classico: 5 dadi, 13 turni a testa, punteggio più alto vince.</p>
+  <div class="rules">
+    <section><h3>Il turno</h3><ul>
+      <li>Si lanciano i 5 dadi fino a <b>3 volte</b>: dopo ogni lancio puoi tenere i dadi che vuoi e rilanciare gli altri.</li>
+      <li>Alla fine devi segnare il risultato in <b>una casella libera</b> a tua scelta. Se non fa punti, la barri con 0.</li>
+      <li>Ogni casella si usa una sola volta: dopo 13 turni la cartella è piena.</li></ul></section>
+    <section><h3>Sezione superiore</h3><table>
+      <tr><td>Uno … Sei</td><td>somma dei dadi di quel numero</td></tr>
+      <tr><td>Bonus</td><td>+35 se la somma è almeno 63</td></tr></table>
+      <p>63 equivale a tre dadi uguali per ogni numero (3+6+9+12+15+18).</p></section>
+    <section><h3>Sezione inferiore</h3><table>
+      <tr><td>Tris · almeno 3 uguali</td><td>somma dei 5 dadi</td></tr>
+      <tr><td>Poker · almeno 4 uguali</td><td>somma dei 5 dadi</td></tr>
+      <tr><td>Full · 3 uguali + 2 uguali</td><td>25</td></tr>
+      <tr><td>Scala piccola · 4 in fila</td><td>30</td></tr>
+      <tr><td>Scala grande · 5 in fila</td><td>40</td></tr>
+      <tr><td>Yahtzee · 5 uguali</td><td>50</td></tr>
+      <tr><td>Chance · qualsiasi</td><td>somma dei 5 dadi</td></tr></table></section>
+    <section><h3>Yahtzee extra e regola del jolly</h3><ul>
+      <li>Se hai già 50 nella casella Yahtzee, ogni altro Yahtzee vale <b>+100</b> di bonus.</li>
+      <li>In più va comunque segnato in una casella: prima quella superiore del numero uscito (es. cinque 4 → “Quattro”), se è libera.</li>
+      <li>Se è già usata, puoi usarlo come <b>jolly</b> in una casella inferiore libera con punteggio pieno (Full 25, Scale 30/40).</li>
+      <li>Se anche la sezione inferiore è piena, barri una casella superiore con 0.</li>
+      <li>Se avevi barrato lo Yahtzee con 0, niente bonus, ma il jolly vale lo stesso.</li></ul></section>
+    <section><h3>Probabilità con 5 dadi</h3>
+      <p>In un singolo lancio ci sono 6⁵ = 7.776 combinazioni possibili, tutte ugualmente probabili.</p><table>
+      <tr><td>Yahtzee al primo lancio</td><td>0,08% (1 su 1.296)</td></tr>
+      <tr><td>Yahtzee in un turno intero (3 lanci)</td><td>circa 4,6%</td></tr>
+      <tr><td>Scala grande in un lancio</td><td>3,1%</td></tr>
+      <tr><td>Scala piccola (o grande) in un lancio</td><td>15,4%</td></tr>
+      <tr><td>Full in un lancio</td><td>3,9%</td></tr>
+      <tr><td>Poker o meglio in un lancio</td><td>2,0%</td></tr>
+      <tr><td>Tris o meglio in un lancio</td><td>21,3%</td></tr></table>
+      <p>I dadi virtuali sono equi: ogni faccia esce con probabilità 1 su 6, generata con il generatore casuale crittografico del browser.</p></section>
+  </div></div>`;
+}
+
+/* ===================== Eventi ===================== */
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]'); if(!el) return;
+  const a = el.dataset.act, d = el.dataset;
+  switch(a){
+    case 'tab': tab = d.tab; render(); window.scrollTo(0,0); break;
+    case 'pick': { const i = pickSel.indexOf(d.p); i >= 0 ? pickSel.splice(i,1) : pickSel.push(d.p); render(); break; }
+    case 'pickall': pickSel = pickSel.length === S.players.length ? [] : [...pickSel, ...S.players.map(p => p.id).filter(id => !pickSel.includes(id))]; render(); break;
+    case 'shuffle': for(let i = pickSel.length-1; i > 0; i--){ const j = Math.floor(Math.random()*(i+1)); [pickSel[i], pickSel[j]] = [pickSel[j], pickSel[i]]; } render(); toast('Primo a giocare: ' + player(pickSel[0]).name); break;
+    case 'start': startGame(); break;
+    case 'newmode': newMode = d.m; render(); break;
+    case 'roll': rollDice(); break;
+    case 'hold': toggleHold(Number(d.i)); break;
+    case 'cell': {
+      const g = S.current;
+      if(!g.virtual){ openScore(d.p, d.k); break; }
+      const now = nowPlayer(g);
+      if(g.scores[d.p][d.k] != null) toast('Casella già usata (per correggere usa “Annulla”)');
+      else if(d.p !== now) toast(`È il turno di ${(player(now)||{}).name}`);
+      else if(!g.roll.n) toast('Prima lancia i dadi');
+      else scoreVirtual(d.p, d.k);
+      break;
+    }
+    case 'yb': openYB(d.p); break;
+    case 'ybp': case 'ybm': { pushUndo(); const g = S.current; g.yb[d.p] = Math.max(0, (g.yb[d.p]||0) + (a === 'ybp' ? 1 : -1)); save(); render(); openYB(d.p); break; }
+    case 'undo': undo(); break;
+    case 'end': endGame(); break;
+    case 'close': dlg.close(); break;
+    case 'mode': M.mode = d.m; S.prefs.mode = d.m; save(); renderScore(); focusManual(); break;
+    case 'extra': M.extra = el.checked; break;
+    case 'pickv': commit(Number(d.v), M.extra); break;
+    case 'adddie': if(M.dice.length < 5){ M.dice.push(Number(d.n)); renderScore(); } break;
+    case 'undie': M.dice.splice(Number(d.i), 1); renderScore(); break;
+    case 'dicedok': { const info = diceInfo(); if(info) commit(info.score, info.bonus); break; }
+    case 'manualok': manualOk(); break;
+    case 'clearcell': { pushUndo(); delete S.current.scores[M.pid][M.k]; save(); dlg.close(); render(); toast('Casella svuotata'); break; }
+    case 'rematch': { const g = S.games.find(x => x.id === d.g); pickSel = g.results.map(r => r.pid).filter(id => player(id)); dlg.close(); tab = 'game'; if(pickSel.length) startGame(!!g.virtual); else render(); break; }
+    case 'femoji': form.emoji = d.v; render(); break;
+    case 'fcolor': form.color = d.v; render(); break;
+    case 'pedit': { const p = player(d.p); editId = p.id; form = {name:p.name, nick:p.nick||'', emoji:p.emoji, color:p.color}; render(); window.scrollTo(0,0); break; }
+    case 'fcancel': editId = null; form = blankForm(); render(); break;
+    case 'pdel': deletePlayer(d.p); break;
+    case 'hview': showGameSheets(d.g); break;
+    case 'hdel': (async () => { const v = await ask('Eliminare la partita?', 'La partita verrà tolta dallo storico, dai record e dalle statistiche.', [{label:'Annulla', value:null}, {label:'Elimina', value:true, kind:'danger solid'}]); if(v){ S.games = S.games.filter(g => g.id !== d.g); save(); render(); toast('Partita eliminata'); } })(); break;
+    case 'export': exportData(); break;
+    case 'import': importData(); break;
+  }
+});
+document.addEventListener('toggle', e => { if(e.target.id === 'gstats') statsOpen = e.target.open; }, true);
+document.addEventListener('keydown', e => {
+  if(!dlg.open && tab === 'game' && S.current && S.current.virtual && e.key === ' ' && !/INPUT|TEXTAREA|BUTTON/.test(document.activeElement.tagName)){
+    e.preventDefault(); rollDice(); return;
+  }
+  if(M && M.mode === 'dice' && dlg.open){
+    if(/^[1-6]$/.test(e.key) && M.dice.length < 5){ M.dice.push(Number(e.key)); renderScore(); }
+    else if(e.key === 'Backspace' && M.dice.length){ M.dice.pop(); renderScore(); }
+    else if(e.key === 'Enter'){ const info = diceInfo(); if(info){ e.preventDefault(); commit(info.score, info.bonus); } }
+  }
+});
+
+document.getElementById('logo').innerHTML = die(5, 26);
+render();
+</script>
+</body>
+</html>
